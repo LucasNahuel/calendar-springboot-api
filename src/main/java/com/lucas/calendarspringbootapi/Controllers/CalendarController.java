@@ -32,6 +32,7 @@ public class CalendarController {
         //get the calendars from the given user
         List<Calendar> calendars = calendarRepository.findAllByUserId(user);
 
+
         //map for the body of the response
         Map<Object, Object> paramsBody = new LinkedHashMap();
         paramsBody.put("value", calendars);
