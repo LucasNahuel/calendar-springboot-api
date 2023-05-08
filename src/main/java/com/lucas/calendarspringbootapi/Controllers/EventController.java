@@ -116,6 +116,6 @@ public class EventController {
         Map<Object, Object> responseParams = new LinkedHashMap<>();
         responseParams.put("value", foundEvents);
 
-        return new ResponseEntity<>(foundEvents, HttpStatus.OK);
+        return new ResponseEntity<>(responseParams, HttpStatus.OK);
     }
 }
