@@ -33,7 +33,6 @@ public class EventController {
         String dayToFindStamp = urlParts[urlParts.length-1];
         String calendarId = urlParts[urlParts.length-2];
 
-        System.out.println("get events by day called "+"daytofindstap "+dayToFindStamp+"calendarid "+calendarId);
 
         //find the calendar from the received id
         if(Long.valueOf(calendarId) != null) {
@@ -48,20 +47,17 @@ public class EventController {
             cal.set(cal.get(cal.YEAR), cal.get(cal.MONTH), cal.get(cal.DATE), 00, 00, 00);
             Date beginDate = cal.getTime();
 
-            System.out.println("begin date : " + cal.get(cal.YEAR)+" "+(cal.get(cal.MONTH))+" "+cal.get(cal.DATE));
-            System.out.println("begin date stamp : "+cal.getTimeInMillis());
 
             //defines the end of the day from the received stamp
             cal.set(cal.get(cal.YEAR), cal.get(cal.MONTH), cal.get(cal.DATE), 23, 59, 59);
             Date endDate = cal.getTime();
 
-            System.out.println("end date : " + cal.get(cal.YEAR)+" "+(cal.get(cal.MONTH))+" "+cal.get(cal.DATE));
-            System.out.println("end date stamp : "+cal.getTimeInMillis());
 
-
+            //finds all events who begins this day
             List<Event> eventList = eventRepository.findAllByCalendarIdAndBeginDateGreaterThanEqualAndBeginDateLessThanEqual(optCalendar.get(), beginDate, endDate);
+            //find all events who covers this day
+            eventList.addAll(eventRepository.findAllByCalendarIdAndBeginDateLessThanAndEndDateGreaterThan(optCalendar.get(), beginDate, beginDate));
 
-            System.out.println("found elements: " + eventList.size());
             //map which contains the body for the response, including the list of events found
             Map<Object, Object> paramMap = new LinkedHashMap<>();
             paramMap.put("value", eventList);
@@ -75,7 +71,6 @@ public class EventController {
     @PostMapping(path = "/createEvent")
     public ResponseEntity<?> createEvent(@RequestBody Map<String, Object> body){
 
-            System.out.println(body.get("name"));
 
             Event event = new Event();
             event.setBeginDate(new Date((Long)body.get("beginDate")));
@@ -87,7 +82,6 @@ public class EventController {
 
             event.setCalendarId(cal.get());
 
-            System.out.println("saving calendar" +event.getName());
 
             eventRepository.save(event);
 
@@ -96,5 +90,32 @@ public class EventController {
             bodyParams.put("value", "Event saved correctly");
 
             return new ResponseEntity<>(bodyParams, HttpStatus.OK);
+    }
+
+    @GetMapping(path="/getNextEvents/{calendarId}/{dateStamp}")
+    public ResponseEntity<?> getNextEvents(HttpServletRequest request){
+        String[] requestParams = request.getRequestURL().toString().split("/");
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(Long.valueOf(requestParams[requestParams.length-1]));
+        cal.set(cal.get(Calendar.YEAR),cal.get(Calendar.MONTH), cal.get(Calendar.DATE), 00, 00, 00);
+
+
+        Date dateBegin = cal.getTime();
+        Date limit = new Date(dateBegin.getTime()+(1000*60*60*24*7));
+        Optional<com.lucas.calendarspringbootapi.Models.Calendar> calendar = calendarRepository.findById(Long.valueOf(requestParams[requestParams.length-2]));
+
+        List<Event> foundEvents = eventRepository.findAllByCalendarIdAndBeginDateGreaterThanEqualAndBeginDateLessThanEqual(calendar.get(), dateBegin, limit);
+
+        if(foundEvents.size()>10){
+            foundEvents = foundEvents.subList(0,10);
+        }
+
+
+
+        Map<Object, Object> responseParams = new LinkedHashMap<>();
+        responseParams.put("value", foundEvents);
+
+        return new ResponseEntity<>(foundEvents, HttpStatus.OK);
     }
 }

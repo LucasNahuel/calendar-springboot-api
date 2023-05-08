@@ -11,5 +11,6 @@ public interface EventRepository extends CrudRepository<Event, Long> {
 
     public List<Event> findAllByCalendarIdAndBeginDateGreaterThanEqualAndBeginDateLessThanEqual(Calendar calendarId, Date beginDate, Date endDate);
 
+    public List<Event> findAllByCalendarIdAndBeginDateLessThanAndEndDateGreaterThan(Calendar calendarId, Date beginDate, Date endDate);
 
 }
