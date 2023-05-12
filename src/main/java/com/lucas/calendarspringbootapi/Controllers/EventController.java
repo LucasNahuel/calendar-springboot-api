@@ -7,6 +7,8 @@ import com.lucas.calendarspringbootapi.Models.Event;
 import com.lucas.calendarspringbootapi.Repositories.CalendarRepository;
 import com.lucas.calendarspringbootapi.Repositories.EventRepository;
 import com.lucas.calendarspringbootapi.exception.SavingError;
+import jakarta.persistence.PostUpdate;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -58,9 +60,26 @@ public class EventController {
             //find all events who covers this day
             eventList.addAll(eventRepository.findAllByCalendarIdAndBeginDateLessThanAndEndDateGreaterThan(optCalendar.get(), beginDate, beginDate));
 
+            List<Object> foundEventsEdited = new ArrayList<>();
+
+            for(int i = 0 ; i < eventList.size(); i++){
+
+                Event e = eventList.get(i);
+                Map<Object, Object> eventMap = new LinkedHashMap<>();
+                eventMap.put("_id", e.get_id());
+                eventMap.put("name", e.getName());
+                eventMap.put("description", e.getDescription());
+                eventMap.put("beginDate", e.getBeginDate());
+                eventMap.put("endDate", e.getEndDate());
+                eventMap.put("calendarId", String.valueOf(e.getCalendarId().get_id()));
+                foundEventsEdited.add(eventMap);
+            }
+
+
+
             //map which contains the body for the response, including the list of events found
             Map<Object, Object> paramMap = new LinkedHashMap<>();
-            paramMap.put("value", eventList);
+            paramMap.put("value", foundEventsEdited);
 
             return new ResponseEntity<>(paramMap, HttpStatus.OK);
         }
@@ -111,10 +130,52 @@ public class EventController {
             foundEvents = foundEvents.subList(0,10);
         }
 
+        //I can't just return event elements, as the other api don't send calendars objects directly, just the id of them
+
+        List<Object> foundEventsEdited = new ArrayList<>();
+
+        for(int i = 0 ; i < foundEvents.size(); i++){
+
+            Event e = foundEvents.get(i);
+            Map<Object, Object> eventMap = new LinkedHashMap<>();
+            eventMap.put("_id", e.get_id());
+            eventMap.put("name", e.getName());
+            eventMap.put("description", e.getDescription());
+            eventMap.put("beginDate", e.getBeginDate());
+            eventMap.put("endDate", e.getEndDate());
+            eventMap.put("calendarId", String.valueOf(e.getCalendarId().get_id()));
+            foundEventsEdited.add(eventMap);
+        }
+
 
 
         Map<Object, Object> responseParams = new LinkedHashMap<>();
-        responseParams.put("value", foundEvents);
+        responseParams.put("value", foundEventsEdited);
+
+        return new ResponseEntity<>(responseParams, HttpStatus.OK);
+    }
+
+    @RequestMapping(path="/editEvent", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ResponseEntity<?> editEvent(@RequestBody Object body){
+
+
+        //cast requestbody object to a map
+        Map<String, Object> bodyMap = (LinkedHashMap<String, Object>)body;
+
+
+        Optional<Event> optEv = eventRepository.findById(Long.valueOf((Integer)bodyMap.get("_id")));
+        Event ev = optEv.get();
+        ev.setName((String) bodyMap.get("name"));
+        ev.setDescription((String)bodyMap.get("description"));
+        ev.setBeginDate(new Date((Long)bodyMap.get("beginDate")));
+        ev.setEndDate(new Date((Long)bodyMap.get("endDate")));
+
+        ev.setCalendarId(calendarRepository.findById(Long.valueOf((String)bodyMap.get("calendarId"))).get());
+
+        eventRepository.save(ev);
+
+        Map<Object, Object> responseParams = new LinkedHashMap<>();
+        responseParams.put("value", "Correctly edited");
 
         return new ResponseEntity<>(responseParams, HttpStatus.OK);
     }
