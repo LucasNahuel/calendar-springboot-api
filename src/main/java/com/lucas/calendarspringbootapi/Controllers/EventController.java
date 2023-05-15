@@ -97,7 +97,7 @@ public class EventController {
             event.setName((String)body.get("name"));
             event.setDescription((String)body.get("description"));
 
-            Optional<com.lucas.calendarspringbootapi.Models.Calendar> cal = calendarRepository.findById(Long.valueOf((Integer)body.get("calendarId")));
+            Optional<com.lucas.calendarspringbootapi.Models.Calendar> cal = calendarRepository.findById(Long.valueOf((String)body.get("calendarId")));
 
             event.setCalendarId(cal.get());
 
@@ -176,6 +176,19 @@ public class EventController {
 
         Map<Object, Object> responseParams = new LinkedHashMap<>();
         responseParams.put("value", "Correctly edited");
+
+        return new ResponseEntity<>(responseParams, HttpStatus.OK);
+    }
+
+    @DeleteMapping(path = "/eventDelete/{eventId}")
+    public ResponseEntity<?> eventDelete (HttpServletRequest request){
+        String[] urlParts = request.getRequestURL().toString().split("/");
+        Long eventId = Long.valueOf(urlParts[urlParts.length-1]);
+
+        eventRepository.deleteById(eventId);
+
+        Map<Object, Object> responseParams = new LinkedHashMap<>();
+        responseParams.put("value", "Correctly deleted");
 
         return new ResponseEntity<>(responseParams, HttpStatus.OK);
     }
